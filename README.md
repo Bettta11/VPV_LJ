@@ -8,7 +8,7 @@
 - Этап 1: каркас проекта, общий OpenMM-core и короткий debug-запуск готовы.
 - Этап 2: EOS sweep, eos_points.csv, eos_final_profiles.csv и первичные графики готовы.
 - Этап 3: fit уравнения Ван-дер-Ваальса и графики сравнения готовы.
-- Этап 4: visual workflow и полный управляющий ноутбук пока не реализованы.
+- Этап 4: debug/visual workflow и управляющий ноутбук готовы.
 
 ## Структура
 
@@ -31,6 +31,12 @@
 - data/debug/debug_001/state_trace.csv
 - data/debug/debug_001/trajectory.dcd
 - data/debug/debug_001/topology.pdb
+- data/debug/debug_001/profiles.csv
+- data/debug/debug_001/figures/temperature_trace.png
+- data/debug/debug_001/figures/pressure_trace.png
+- data/debug/debug_001/figures/energy_trace.png
+- data/debug/debug_001/figures/final_profile.png
+- data/debug/debug_001/figures/snapshot.png
 
 ## EOS-запуск
 
@@ -70,6 +76,29 @@ Fit использует модель:
 - figures/vdw_fit.png
 - figures/vdw_residuals.png
 - figures/vdw_temperature_series.png
+
+## Visual-запуск
+
+Visual-режим делает короткую демонстрационную траекторию. Эти данные не
+используются для fit Ван-дер-Ваальса.
+
+    .venv/bin/python visual.py configs/visual.yaml
+
+Ожидаемые файлы:
+
+- data/visual/visual_001/config.yaml
+- data/visual/visual_001/log.txt
+- data/visual/visual_001/state_trace.csv
+- data/visual/visual_001/trajectory.dcd
+- data/visual/visual_001/topology.pdb
+- data/visual/visual_001/profiles_time.csv
+- data/visual/visual_001/preview_frames/frame_*.png
+- data/visual/visual_001/videos/preview.mp4, если доступна сборка mp4 через imageio/ffmpeg
+
+## Управляющий ноутбук
+
+`cloud_runner.ipynb` содержит только orchestration: проверку OpenMM platform,
+запуск debug, EOS, fit и visual. Длинная логика остаётся в Python-модулях.
 
 Ограничения EOS-режима:
 

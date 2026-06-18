@@ -12,15 +12,17 @@ potential:
   rcut: 2.5
 
 system:
-  N: 512
+  N: 128
   dimension: 3
   T: 0.85
-  box: [18.0, 18.0, 40.0]
-  init: gas_or_compression
+  rho: 0.05
+  box_mode: density
+  boundary: periodic
+  init: auto
 
 external_field:
-  type: gravity
-  g: 0.01
+  type: none
+  g: 0.0
 
 thermostat:
   type: langevin
@@ -28,8 +30,8 @@ thermostat:
 
 run:
   dt: 0.002
-  equil_steps: 1000
-  prod_steps: 5000
+  equil_steps: 500
+  prod_steps: 1200
 
 save:
   trace:
@@ -38,6 +40,9 @@ save:
   trajectory:
     enabled: true
     interval: 100
+    max_frames: 12
+  profiles_time:
+    enabled: true
+    bins_z: 40
   video:
-    enabled: false
-
+    enabled: true
