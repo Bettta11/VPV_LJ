@@ -54,6 +54,35 @@ def require_openmm() -> None:
         raise RuntimeError("OpenMM is required. Install dependencies from requirements.txt.") from OPENMM_IMPORT_ERROR
 
 
+def available_platforms() -> list[str]:
+    """Return OpenMM platform names visible in the current runtime."""
+    require_openmm()
+    return [mm.Platform.getPlatform(i).getName() for i in range(mm.Platform.getNumPlatforms())]
+
+
+def select_platform(params: dict[str, Any]) -> tuple[Any, dict[str, str]]:
+    """Select an OpenMM platform, preferring GPU backends when platform='auto'."""
+    require_openmm()
+    requested = str(params.get("platform", "auto"))
+    names = available_platforms()
+    if requested == "auto":
+        for candidate in ("CUDA", "OpenCL", "CPU", "Reference"):
+            if candidate in names:
+                requested = candidate
+                break
+    elif requested not in names:
+        raise RuntimeError(f"Requested OpenMM platform {requested!r} is unavailable. Available: {names}")
+
+    platform = mm.Platform.getPlatformByName(requested)
+    properties: dict[str, str] = {}
+    if requested in {"CUDA", "OpenCL"}:
+        properties["Precision"] = str(params.get("gpu_precision", "mixed"))
+        device_index = params.get("device_index")
+        if device_index is not None:
+            properties["DeviceIndex"] = str(device_index)
+    return platform, properties
+
+
 def cubic_box_length(n_particles: int, density: float) -> float:
     return float((n_particles / density) ** (1.0 / 3.0))
 
@@ -121,7 +150,8 @@ def create_lj_simulation(params: dict[str, Any], temperature: float, density: fl
     integrator.setRandomNumberSeed(int(seed))
 
     topology = make_topology(n_particles)
-    simulation = app.Simulation(topology, system, integrator)
+    platform, properties = select_platform(params)
+    simulation = app.Simulation(topology, system, integrator, platform, properties)
     simulation.context.setPositions(lattice_positions(n_particles, box_length) * unit.nanometer)
     simulation.context.setVelocitiesToTemperature(openmm_temperature, int(seed))
     return simulation, box_length

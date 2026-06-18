@@ -54,6 +54,26 @@ python3 -m venv .venv
 jupyter notebook lj_vdw_notebook.ipynb
 ```
 
+В Google Colab лучше запускать с GPU:
+
+1. Откройте ноутбук через Colab.
+2. Выберите `Runtime -> Change runtime type -> GPU`.
+3. Выполните первую setup-ячейку.
+4. В ячейке импорта проверьте список OpenMM-платформ. Для GPU-прогона там
+   должна быть `CUDA`.
+
+В ячейке `PARAMS` есть параметры платформы:
+
+```python
+"platform": "auto",
+"gpu_precision": "mixed",
+"device_index": None,
+```
+
+`"auto"` выбирает `CUDA`, если она доступна, затем `OpenCL`, затем CPU. Для
+принудительного GPU можно поставить `"platform": "CUDA"`; если Colab runtime
+запущен без GPU, ноутбук тогда сразу сообщит об ошибке вместо тихого CPU-прогона.
+
 Для маленькой проверки оставьте в ячейке `PARAMS` сетку:
 
 ```python
