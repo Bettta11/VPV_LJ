@@ -1,10 +1,11 @@
-"""EOS sweep and stage-2 tabular outputs for the LJ project."""
+"""EOS sweep, tabular outputs, and VdW analysis for the LJ project."""
 
 from __future__ import annotations
 
 import argparse
 import copy
 import csv
+import json
 import math
 from pathlib import Path
 from statistics import mean, stdev
@@ -48,6 +49,14 @@ EOS_POINT_FIELDS = [
 ]
 
 PROFILE_FIELDS = ["run_id", "bin", "z_min", "z_max", "z_center", "count"]
+
+VDW_DEFAULT_FIT_REGION = {
+    "status": ["ok"],
+    "rho_min": None,
+    "rho_max": None,
+    "temperatures": None,
+    "source": "all finite ok rows from eos_points.csv",
+}
 
 
 def _sample_stats(values: list[float]) -> tuple[float, float, float]:
@@ -238,6 +247,113 @@ def _read_profiles(eos_dir: str | Path) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
+def _finite_float(row: dict[str, str], field: str) -> float | None:
+    try:
+        value = float(row[field])
+    except (KeyError, TypeError, ValueError):
+        return None
+    if not math.isfinite(value):
+        return None
+    return value
+
+
+def _select_vdw_rows(
+    rows: list[dict[str, str]],
+    fit_region: dict[str, Any] | None = None,
+) -> tuple[list[dict[str, str]], dict[str, Any]]:
+    region = {**VDW_DEFAULT_FIT_REGION, **(fit_region or {})}
+    statuses = set(region.get("status") or ["ok"])
+    rho_min = region.get("rho_min")
+    rho_max = region.get("rho_max")
+    temperatures = region.get("temperatures")
+    temperature_set = None if temperatures is None else {float(value) for value in temperatures}
+
+    selected = []
+    for row in rows:
+        if row.get("status") not in statuses:
+            continue
+        rho = _finite_float(row, "rho_mean")
+        temperature = _finite_float(row, "T_mean")
+        pressure = _finite_float(row, "P_mean")
+        t_target = _finite_float(row, "T_target")
+        if rho is None or temperature is None or pressure is None or t_target is None:
+            continue
+        if rho_min is not None and rho < float(rho_min):
+            continue
+        if rho_max is not None and rho > float(rho_max):
+            continue
+        if temperature_set is not None and t_target not in temperature_set:
+            continue
+        selected.append(row)
+
+    saved_region = {
+        "status": sorted(statuses),
+        "rho_min": rho_min,
+        "rho_max": rho_max,
+        "temperatures": None if temperature_set is None else sorted(temperature_set),
+        "source": region.get("source", VDW_DEFAULT_FIT_REGION["source"]),
+        "temperature_column": "T_mean",
+        "density_column": "rho_mean",
+        "pressure_column": "P_mean",
+    }
+    return selected, saved_region
+
+
+def _vdw_pressure(rho: float, temperature: float, a: float, b: float) -> float:
+    return rho * temperature / (1.0 - b * rho) - a * rho * rho
+
+
+def _fit_a_for_b(data: list[tuple[float, float, float]], b: float) -> float:
+    numerator = 0.0
+    denominator = 0.0
+    for rho, temperature, pressure in data:
+        base = rho * temperature / (1.0 - b * rho)
+        x = rho * rho
+        numerator += x * (base - pressure)
+        denominator += x * x
+    if denominator == 0.0:
+        return 0.0
+    return max(0.0, numerator / denominator)
+
+
+def _sse_for_b(data: list[tuple[float, float, float]], b: float) -> tuple[float, float]:
+    a = _fit_a_for_b(data, b)
+    sse = 0.0
+    for rho, temperature, pressure in data:
+        residual = pressure - _vdw_pressure(rho, temperature, a, b)
+        sse += residual * residual
+    return sse, a
+
+
+def _fit_vdw_parameters(data: list[tuple[float, float, float]]) -> tuple[float, float]:
+    rho_max = max(rho for rho, _temperature, _pressure in data)
+    upper = 0.95 / rho_max
+    lower = 0.0
+    phi = (math.sqrt(5.0) - 1.0) / 2.0
+    x1 = upper - phi * (upper - lower)
+    x2 = lower + phi * (upper - lower)
+    f1, _a1 = _sse_for_b(data, x1)
+    f2, _a2 = _sse_for_b(data, x2)
+    for _ in range(160):
+        if f1 > f2:
+            lower = x1
+            x1 = x2
+            f1 = f2
+            x2 = lower + phi * (upper - lower)
+            f2, _a2 = _sse_for_b(data, x2)
+        else:
+            upper = x2
+            x2 = x1
+            f2 = f1
+            x1 = upper - phi * (upper - lower)
+            f1, _a1 = _sse_for_b(data, x1)
+        if abs(upper - lower) < 1.0e-10:
+            break
+    b = 0.5 * (lower + upper)
+    _sse, a = _sse_for_b(data, b)
+    return float(a), float(b)
+
+
 def plot_eos_results(eos_dir: str) -> None:
     try:
         import matplotlib.pyplot as plt
@@ -310,15 +426,189 @@ def plot_eos_results(eos_dir: str) -> None:
         plt.close()
 
 
-def fit_vdw(eos_dir: str) -> dict:
-    raise NotImplementedError("van der Waals fitting is scheduled for stage 3.")
+def fit_vdw(eos_dir: str, fit_region: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Fit VdW parameters from an existing eos_points.csv and save plots.
+
+    The default fit-region is deliberately explicit: all finite rows with
+    status=ok. Callers may pass rho_min/rho_max/temperatures to narrow it.
+    """
+    out_dir = Path(eos_dir)
+    rows = _read_points(out_dir)
+    selected_rows, saved_region = _select_vdw_rows(rows, fit_region)
+    if len(selected_rows) < 3:
+        raise ValueError("Need at least 3 finite EOS points to fit a,b.")
+
+    data = [
+        (
+            float(row["rho_mean"]),
+            float(row["T_mean"]),
+            float(row["P_mean"]),
+        )
+        for row in selected_rows
+    ]
+    a, b = _fit_vdw_parameters(data)
+
+    residual_rows = []
+    squared = []
+    absolute = []
+    for row in selected_rows:
+        rho = float(row["rho_mean"])
+        temperature = float(row["T_mean"])
+        pressure = float(row["P_mean"])
+        prediction = _vdw_pressure(rho, temperature, a, b)
+        residual = pressure - prediction
+        squared.append(residual * residual)
+        absolute.append(abs(residual))
+        residual_rows.append(
+            {
+                "run_id": row["run_id"],
+                "T_target": float(row["T_target"]),
+                "T_mean": temperature,
+                "rho_mean": rho,
+                "P_mean": pressure,
+                "P_vdw": prediction,
+                "residual": residual,
+            }
+        )
+
+    result = {
+        "model": "P = rho*T/(1 - b*rho) - a*rho^2",
+        "a": a,
+        "b": b,
+        "fit_region": saved_region,
+        "n_fit_points": len(selected_rows),
+        "fit_run_ids": [row["run_id"] for row in selected_rows],
+        "metrics": {
+            "rmse": math.sqrt(sum(squared) / len(squared)),
+            "mae": sum(absolute) / len(absolute),
+            "max_abs_residual": max(absolute),
+        },
+        "residuals": residual_rows,
+    }
+
+    with (out_dir / "vdw_fit.json").open("w", encoding="utf-8") as handle:
+        json.dump(result, handle, indent=2, ensure_ascii=False)
+        handle.write("\n")
+    plot_vdw_fit(str(out_dir), result)
+    return result
+
+
+def plot_vdw_fit(eos_dir: str, fit_result: dict[str, Any] | None = None) -> None:
+    try:
+        import matplotlib.pyplot as plt
+        import numpy as np
+    except ImportError:
+        return
+
+    out_dir = Path(eos_dir)
+    figures = out_dir / "figures"
+    figures.mkdir(exist_ok=True)
+    if fit_result is None:
+        with (out_dir / "vdw_fit.json").open("r", encoding="utf-8") as handle:
+            fit_result = json.load(handle)
+
+    a = float(fit_result["a"])
+    b = float(fit_result["b"])
+    residuals = fit_result["residuals"]
+    if not residuals:
+        return
+
+    temperatures = sorted({float(row["T_target"]) for row in residuals})
+    rho_min = min(float(row["rho_mean"]) for row in residuals)
+    rho_max = max(float(row["rho_mean"]) for row in residuals)
+    rho_grid = np.linspace(max(1.0e-9, 0.9 * rho_min), 1.05 * rho_max, 200)
+
+    plt.figure(figsize=(7, 4.5))
+    for temperature in temperatures:
+        subset = sorted(
+            [row for row in residuals if float(row["T_target"]) == temperature],
+            key=lambda row: float(row["rho_mean"]),
+        )
+        if not subset:
+            continue
+        t_for_curve = mean(float(row["T_mean"]) for row in subset)
+        plt.plot(
+            [float(row["rho_mean"]) for row in subset],
+            [float(row["P_mean"]) for row in subset],
+            marker="o",
+            linestyle="none",
+            label=f"MD T={temperature:g}",
+        )
+        plt.plot(
+            rho_grid,
+            [_vdw_pressure(float(rho), t_for_curve, a, b) for rho in rho_grid],
+            linestyle="-",
+            label=f"VdW T={temperature:g}",
+        )
+    plt.xlabel("rho")
+    plt.ylabel("P")
+    plt.legend(fontsize="small", ncol=2)
+    plt.tight_layout()
+    plt.savefig(figures / "vdw_fit.png", dpi=160)
+    plt.close()
+
+    plt.figure(figsize=(7, 4.5))
+    for temperature in temperatures:
+        subset = sorted(
+            [row for row in residuals if float(row["T_target"]) == temperature],
+            key=lambda row: float(row["rho_mean"]),
+        )
+        plt.axhline(0.0, color="0.8", linewidth=1)
+        plt.plot(
+            [float(row["rho_mean"]) for row in subset],
+            [float(row["residual"]) for row in subset],
+            marker="o",
+            label=f"T={temperature:g}",
+        )
+    plt.xlabel("rho")
+    plt.ylabel("P_MD - P_VdW")
+    plt.legend(fontsize="small")
+    plt.tight_layout()
+    plt.savefig(figures / "vdw_residuals.png", dpi=160)
+    plt.close()
+
+    fig, axes = plt.subplots(len(temperatures), 1, figsize=(7, 2.5 * len(temperatures)), sharex=True)
+    if len(temperatures) == 1:
+        axes = [axes]
+    for axis, temperature in zip(axes, temperatures):
+        subset = sorted(
+            [row for row in residuals if float(row["T_target"]) == temperature],
+            key=lambda row: float(row["rho_mean"]),
+        )
+        axis.plot(
+            [float(row["rho_mean"]) for row in subset],
+            [float(row["P_mean"]) for row in subset],
+            marker="o",
+            label="MD",
+        )
+        axis.plot(
+            [float(row["rho_mean"]) for row in subset],
+            [float(row["P_vdw"]) for row in subset],
+            marker="s",
+            label="VdW fit",
+        )
+        axis.set_ylabel(f"P, T={temperature:g}")
+        axis.legend(fontsize="small")
+    axes[-1].set_xlabel("rho")
+    fig.tight_layout()
+    fig.savefig(figures / "vdw_temperature_series.png", dpi=160)
+    plt.close(fig)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("config", nargs="?", default="configs/eos.yaml")
+    parser.add_argument(
+        "--fit-vdw",
+        metavar="EOS_DIR",
+        help="fit a,b from an existing EOS directory instead of running a new sweep",
+    )
     args = parser.parse_args()
-    print(run_eos(args.config))
+    if args.fit_vdw:
+        result = fit_vdw(args.fit_vdw)
+        print(json.dumps({"eos_dir": args.fit_vdw, "a": result["a"], "b": result["b"], "n_fit_points": result["n_fit_points"]}, ensure_ascii=False))
+    else:
+        print(run_eos(args.config))
 
 
 if __name__ == "__main__":

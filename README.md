@@ -7,7 +7,7 @@
 
 - Этап 1: каркас проекта, общий OpenMM-core и короткий debug-запуск готовы.
 - Этап 2: EOS sweep, eos_points.csv, eos_final_profiles.csv и первичные графики готовы.
-- Этап 3: fit Ван-дер-Ваальса пока не реализован.
+- Этап 3: fit уравнения Ван-дер-Ваальса и графики сравнения готовы.
 - Этап 4: visual workflow и полный управляющий ноутбук пока не реализованы.
 
 ## Структура
@@ -48,6 +48,28 @@ data/eos/eos_001/.
 - figures/eos_isotherms.png
 - figures/eos_energy.png
 - figures/profile_overview.png
+
+## Анализ Ван-дер-Ваальса
+
+После EOS-запуска можно подобрать параметры `a,b` по уже существующей таблице
+`eos_points.csv`:
+
+    .venv/bin/python eos.py --fit-vdw data/eos/eos_001
+
+Fit использует модель:
+
+    P = rho*T/(1 - b*rho) - a*rho^2
+
+По умолчанию fit-region явно задан как все конечные строки `eos_points.csv` со
+`status=ok`; использованные строки и описание области сохраняются в
+`vdw_fit.json`.
+
+Создаваемые файлы:
+
+- vdw_fit.json
+- figures/vdw_fit.png
+- figures/vdw_residuals.png
+- figures/vdw_temperature_series.png
 
 Ограничения EOS-режима:
 
