@@ -1,0 +1,15 @@
+data/**
+runs/**
+report_assets/videos/**
+*.dcd
+*.xtc
+*.mp4
+*.avi
+*.mov
+*.npy
+*.npz
+__pycache__/
+.ipynb_checkpoints/
+.env
+.venv/
+*.log

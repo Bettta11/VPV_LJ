@@ -1,0 +1,43 @@
+project: visual
+output_dir: data/visual/visual_001
+
+units:
+  sigma: 1.0
+  epsilon: 1.0
+  mass: 1.0
+  kB: 1.0
+
+potential:
+  type: LJ
+  rcut: 2.5
+
+system:
+  N: 512
+  dimension: 3
+  T: 0.85
+  box: [18.0, 18.0, 40.0]
+  init: gas_or_compression
+
+external_field:
+  type: gravity
+  g: 0.01
+
+thermostat:
+  type: langevin
+  friction: 0.2
+
+run:
+  dt: 0.002
+  equil_steps: 1000
+  prod_steps: 5000
+
+save:
+  trace:
+    enabled: true
+    interval: 100
+  trajectory:
+    enabled: true
+    interval: 100
+  video:
+    enabled: false
+

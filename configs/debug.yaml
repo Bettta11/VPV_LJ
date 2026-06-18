@@ -1,0 +1,46 @@
+project: debug
+output_dir: data/debug/debug_001
+
+units:
+  sigma: 1.0
+  epsilon: 1.0
+  mass: 1.0
+  kB: 1.0
+
+potential:
+  type: LJ
+  rcut: 2.5
+
+system:
+  N: 128
+  dimension: 3
+  T: 0.85
+  rho: 0.08
+  init: auto
+
+external_field:
+  type: none
+  g: 0.0
+
+thermostat:
+  type: langevin
+  friction: 0.2
+
+run:
+  dt: 0.002
+  equil_steps: 500
+  prod_steps: 1000
+
+save:
+  trace:
+    enabled: true
+    interval: 50
+  profiles:
+    enabled: true
+    bins_z: 40
+    interval: 500
+  trajectory:
+    enabled: true
+    interval: 100
+    max_frames: 20
+
