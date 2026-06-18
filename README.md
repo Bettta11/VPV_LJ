@@ -1,111 +1,84 @@
-# VPV_LJ
+# LJ-флюид и уравнение Ван-дер-Ваальса
 
-Компактный OpenMM-проект для моделирования Lennard-Jones-флюида и проверки
-применимости уравнения Ван-дер-Ваальса по данным молекулярной динамики.
+Это упрощённая notebook-first версия небольшой студенческой вычислительной
+работы по молекулярной динамике.
 
-## Статус
+Идея работы:
 
-- Этап 1: каркас проекта, общий OpenMM-core и короткий debug-запуск готовы.
-- Этап 2: EOS sweep, eos_points.csv, eos_final_profiles.csv и первичные графики готовы.
-- Этап 3: fit уравнения Ван-дер-Ваальса и графики сравнения готовы.
-- Этап 4: debug/visual workflow и управляющий ноутбук готовы.
+1. Смоделировать Lennard-Jones-флюид в периодической 3D-коробке.
+2. Для нескольких температур и плотностей построить численные изотермы
+   `P(rho, T)`.
+3. Сохранить основные EOS-данные в простые CSV-таблицы.
+4. Подобрать параметры `a,b` уравнения Ван-дер-Ваальса:
+
+       P = rho*T/(1 - b*rho) - a*rho^2
+
+5. Сравнить MD-изотермы с fitted VdW-кривыми на графиках.
+
+Проект намеренно не оформлен как библиотека или фреймворк. Основной ход расчёта
+виден в ноутбуке `lj_vdw_notebook.ipynb`; параметры меняются прямо в ячейке
+`PARAMS`.
 
 ## Структура
 
-    cloud_runner.ipynb
-    core.py
-    debug.py
-    eos.py
-    visual.py
-    configs/
-    data/
-    report_assets/
+```text
+lj_vdw_notebook.ipynb
+lj_utils.py
+requirements.txt
+README.md
+data/
+figures/
+```
 
-## Debug-проверка
+`lj_utils.py` содержит только небольшие вспомогательные функции: создание
+OpenMM-системы, запуск одной EOS-точки, финальный профиль counts по z-бинам,
+fit Ван-дер-Ваальса и построение базовых графиков.
 
-    .venv/bin/python debug.py configs/debug.yaml
+## Установка
 
-Ожидаемые файлы:
+Рекомендуется использовать виртуальное окружение:
 
-- data/debug/debug_001/config.yaml
-- data/debug/debug_001/state_trace.csv
-- data/debug/debug_001/trajectory.dcd
-- data/debug/debug_001/topology.pdb
-- data/debug/debug_001/profiles.csv
-- data/debug/debug_001/figures/temperature_trace.png
-- data/debug/debug_001/figures/pressure_trace.png
-- data/debug/debug_001/figures/energy_trace.png
-- data/debug/debug_001/figures/final_profile.png
-- data/debug/debug_001/figures/snapshot.png
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+```
 
-## EOS-запуск
+Если `venv` недоступен в системе, можно использовать уже созданное окружение
+проекта или другой менеджер окружений.
 
-    .venv/bin/python eos.py configs/eos.yaml
+## Запуск
 
-EOS-режим складывает все точки одной серии в одну директорию, например
-data/eos/eos_001/.
+Откройте и выполните ноутбук:
 
-Создаваемые файлы:
+```bash
+jupyter notebook lj_vdw_notebook.ipynb
+```
 
-- config.yaml
-- log.txt
-- eos_points.csv
-- eos_final_profiles.csv
-- figures/eos_isotherms.png
-- figures/eos_energy.png
-- figures/profile_overview.png
+Для маленькой проверки оставьте в ячейке `PARAMS` сетку:
 
-## Анализ Ван-дер-Ваальса
+```python
+"temperatures": [0.70, 0.90]
+"densities": [0.02, 0.06]
+"seeds": [1]
+```
 
-После EOS-запуска можно подобрать параметры `a,b` по уже существующей таблице
-`eos_points.csv`:
+После запуска должны появиться:
 
-    .venv/bin/python eos.py --fit-vdw data/eos/eos_001
+- `data/eos_points.csv`
+- `data/eos_final_profiles.csv`
+- `data/vdw_fit.json`
+- `figures/eos_isotherms.png`
+- `figures/vdw_fit.png`
 
-Fit использует модель:
+## Ограничения
 
-    P = rho*T/(1 - b*rho) - a*rho^2
+- В основной EOS-части нет гравитации, стенок и slab-геометрии.
+- Используется периодическая коробка и NVT-ансамбль с Langevin-термостатом.
+- EOS-траектории не сохраняются.
+- Для каждой точки расчёта не создаётся отдельная папка.
+- `eos_morphology.csv` не создаётся.
+- `eos_final_profiles.csv` содержит только:
+  `run_id, bin, z_min, z_max, z_center, count`.
 
-По умолчанию fit-region явно задан как все конечные строки `eos_points.csv` со
-`status=ok`; использованные строки и описание области сохраняются в
-`vdw_fit.json`.
-
-Создаваемые файлы:
-
-- vdw_fit.json
-- figures/vdw_fit.png
-- figures/vdw_residuals.png
-- figures/vdw_temperature_series.png
-
-## Visual-запуск
-
-Visual-режим делает короткую демонстрационную траекторию. Эти данные не
-используются для fit Ван-дер-Ваальса.
-
-    .venv/bin/python visual.py configs/visual.yaml
-
-Ожидаемые файлы:
-
-- data/visual/visual_001/config.yaml
-- data/visual/visual_001/log.txt
-- data/visual/visual_001/state_trace.csv
-- data/visual/visual_001/trajectory.dcd
-- data/visual/visual_001/topology.pdb
-- data/visual/visual_001/profiles_time.csv
-- data/visual/visual_001/preview_frames/frame_*.png
-- data/visual/visual_001/videos/preview.mp4, если доступна сборка mp4 через imageio/ffmpeg
-
-## Управляющий ноутбук
-
-`cloud_runner.ipynb` содержит только orchestration: проверку OpenMM platform,
-запуск debug, EOS, fit и visual. Длинная логика остаётся в Python-модулях.
-
-Ограничения EOS-режима:
-
-- не используется гравитация: external_field.type: none, g: 0.0;
-- не сохраняются траектории;
-- не создаются отдельные папки для отдельных точек сетки;
-- не создаётся eos_morphology.csv;
-- eos_final_profiles.csv хранит только run_id, bin, z_min, z_max, z_center, count.
-
-Сгенерированные данные, траектории, виртуальное окружение и кэши игнорируются Git.
+Сгенерированные данные и графики игнорируются git, чтобы репозиторий оставался
+лёгким.
