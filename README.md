@@ -1,16 +1,16 @@
 # VPV_LJ
 
-Compact OpenMM project for a small Lennard-Jones molecular dynamics study:
-building numerical EOS data and comparing it with the van der Waals equation.
+Компактный OpenMM-проект для моделирования Lennard-Jones-флюида и проверки
+применимости уравнения Ван-дер-Ваальса по данным молекулярной динамики.
 
-Current implementation status:
+## Статус
 
-- Stage 1: project scaffold, shared OpenMM core, and a short debug run.
-- Stage 2: EOS sweep and tabular outputs are not implemented yet.
-- Stage 3: van der Waals fitting and plots are not implemented yet.
-- Stage 4: full visual workflows and notebook orchestration are not implemented yet.
+- Этап 1: каркас проекта, общий OpenMM-core и короткий debug-запуск готовы.
+- Этап 2: EOS sweep, eos_points.csv, eos_final_profiles.csv и первичные графики готовы.
+- Этап 3: fit Ван-дер-Ваальса пока не реализован.
+- Этап 4: visual workflow и полный управляющий ноутбук пока не реализованы.
 
-## Layout
+## Структура
 
     cloud_runner.ipynb
     core.py
@@ -21,16 +21,40 @@ Current implementation status:
     data/
     report_assets/
 
-## Stage 1 debug check
+## Debug-проверка
 
-    python3 debug.py configs/debug.yaml
+    .venv/bin/python debug.py configs/debug.yaml
 
-Expected generated files:
+Ожидаемые файлы:
 
 - data/debug/debug_001/config.yaml
 - data/debug/debug_001/state_trace.csv
 - data/debug/debug_001/trajectory.dcd
 - data/debug/debug_001/topology.pdb
 
-Generated data and trajectories are ignored by Git.
+## EOS-запуск
 
+    .venv/bin/python eos.py configs/eos.yaml
+
+EOS-режим складывает все точки одной серии в одну директорию, например
+data/eos/eos_001/.
+
+Создаваемые файлы:
+
+- config.yaml
+- log.txt
+- eos_points.csv
+- eos_final_profiles.csv
+- figures/eos_isotherms.png
+- figures/eos_energy.png
+- figures/profile_overview.png
+
+Ограничения EOS-режима:
+
+- не используется гравитация: external_field.type: none, g: 0.0;
+- не сохраняются траектории;
+- не создаются отдельные папки для отдельных точек сетки;
+- не создаётся eos_morphology.csv;
+- eos_final_profiles.csv хранит только run_id, bin, z_min, z_max, z_center, count.
+
+Сгенерированные данные, траектории, виртуальное окружение и кэши игнорируются Git.

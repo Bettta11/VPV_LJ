@@ -125,7 +125,11 @@ def create_integrator(config: dict[str, Any]) -> Any:
     temperature = (float(config["system"]["T"]) * epsilon / gas_r) * unit.kelvin
     friction = float(config["thermostat"].get("friction", 0.2)) / unit.picosecond
     dt = float(config["run"].get("dt", 0.002)) * unit.picoseconds
-    return mm.LangevinMiddleIntegrator(temperature, friction, dt)
+    integrator = mm.LangevinMiddleIntegrator(temperature, friction, dt)
+    seed = config.get("seed")
+    if seed is not None:
+        integrator.setRandomNumberSeed(int(seed))
+    return integrator
 
 
 def create_simulation(config: dict[str, Any]) -> tuple[Any, Any, np.ndarray, float]:
@@ -142,7 +146,11 @@ def create_simulation(config: dict[str, Any]) -> tuple[Any, Any, np.ndarray, flo
     epsilon = float(config["units"].get("epsilon", 1.0))
     gas_r = unit.MOLAR_GAS_CONSTANT_R.value_in_unit(unit.kilojoule_per_mole / unit.kelvin)
     temperature = (float(config["system"]["T"]) * epsilon / gas_r) * unit.kelvin
-    simulation.context.setVelocitiesToTemperature(temperature)
+    seed = config.get("seed")
+    if seed is None:
+        simulation.context.setVelocitiesToTemperature(temperature)
+    else:
+        simulation.context.setVelocitiesToTemperature(temperature, int(seed))
     return simulation, topology, positions, box_length
 
 
@@ -178,3 +186,55 @@ def write_trace(path: str | Path, rows: list[dict[str, float]]) -> None:
         writer = csv.DictWriter(handle, fieldnames=["step", "T", "P", "U", "K", "E"])
         writer.writeheader()
         writer.writerows(rows)
+
+
+def get_positions_array(simulation: Any) -> np.ndarray:
+    require_openmm()
+    state = simulation.context.getState(getPositions=True)
+    positions = state.getPositions(asNumpy=True)
+    return np.asarray(positions.value_in_unit(unit.nanometer), dtype=float)
+
+
+def lj_virial_pressure(
+    positions: np.ndarray,
+    box_length: float,
+    temperature: float,
+    rcut: float = 2.5,
+    sigma: float = 1.0,
+    epsilon: float = 1.0,
+) -> float:
+    volume = box_length**3
+    n_particles = len(positions)
+    rho = n_particles / volume
+    virial = 0.0
+    rcut2 = rcut * rcut
+    for i in range(n_particles - 1):
+        delta = positions[i + 1 :] - positions[i]
+        delta -= box_length * np.rint(delta / box_length)
+        r2 = np.sum(delta * delta, axis=1)
+        mask = (r2 > 0.0) & (r2 < rcut2)
+        if not np.any(mask):
+            continue
+        inv_r2 = (sigma * sigma) / r2[mask]
+        inv_r6 = inv_r2**3
+        inv_r12 = inv_r6**2
+        virial += float(np.sum(24.0 * epsilon * (2.0 * inv_r12 - inv_r6)))
+    return float(rho * temperature + virial / (3.0 * volume))
+
+
+def z_profile_counts(positions: np.ndarray, box_length: float, bins_z: int) -> list[dict[str, float]]:
+    counts, edges = np.histogram(positions[:, 2] % box_length, bins=bins_z, range=(0.0, box_length))
+    rows = []
+    for index, count in enumerate(counts):
+        z_min = float(edges[index])
+        z_max = float(edges[index + 1])
+        rows.append(
+            {
+                "bin": index,
+                "z_min": z_min,
+                "z_max": z_max,
+                "z_center": 0.5 * (z_min + z_max),
+                "count": int(count),
+            }
+        )
+    return rows
