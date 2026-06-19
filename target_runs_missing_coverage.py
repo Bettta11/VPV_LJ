@@ -1,7 +1,15 @@
-# Вставить в конфигурационную ячейку lj_vdw_targeted_points.ipynb вместо TARGET_RUNS = []
-# Критерий: плотности, полностью покрытые seed 1..5 на T = 0.70, 0.80, ..., 1.20;
-# ниже перечислены отсутствующие seed для промежуточных температур T <= 1.25.
+# Конфигурация targeted production-run для дозакрытия покрытия промежуточных температур.
+# Эту ячейку можно целиком вставить вместо конфигурационной ячейки
+# в lj_vdw_targeted_points.ipynb.
 
+N = 2048
+
+# Режим TARGET_RUNS используется ниже, поэтому TARGET_POINTS оставлен пустым.
+TARGET_POINTS = []
+SEEDS = [1, 2, 3, 4, 5]
+
+# Критерий: берём плотности, полностью покрытые seed 1..5 на T = 0.70, 0.80, ..., 1.20,
+# и дозакрываем отсутствующие seed для промежуточных температур T <= 1.25.
 MISSING_SEEDS_BY_T_RHO = {
     0.75: {
         0.0025: [1, 2, 3, 4, 5],
@@ -191,4 +199,38 @@ TARGET_RUNS = [
     for rho, seeds in by_rho.items()
     for seed in seeds
 ]
-print('Explicit missing coverage runs:', len(TARGET_RUNS))
+
+RUN_PREFIX = 'targeted_lj'
+
+SIGMA = 1.0
+EPSILON = 1.0
+MASS = 1.0
+RCUT = 2.5
+DT = 0.002
+FRICTION = 1.0
+
+EQUIL_STEPS = 20_000
+PROD_STEPS = 20_000
+SAMPLE_INTERVAL = 500
+N_BLOCKS = 10
+
+DEVICE_INDEX = '0'
+PRECISION = 'mixed'
+
+TARGET_POINTS = [(float(T), float(rho)) for T, rho in TARGET_POINTS]
+TARGET_RUNS = [(float(T), float(rho), int(seed)) for T, rho, seed in TARGET_RUNS]
+if len(set(TARGET_POINTS)) != len(TARGET_POINTS):
+    raise ValueError('TARGET_POINTS contains duplicate (T, rho) pairs')
+if len(set(TARGET_RUNS)) != len(TARGET_RUNS):
+    raise ValueError('TARGET_RUNS contains duplicate (T, rho, seed) triples')
+
+if TARGET_RUNS:
+    REQUESTED_RUNS = TARGET_RUNS
+    print('Mode: explicit TARGET_RUNS')
+else:
+    REQUESTED_RUNS = [(T, rho, int(seed)) for seed in SEEDS for T, rho in TARGET_POINTS]
+    print('Mode: TARGET_POINTS x SEEDS')
+
+print('Requested runs:', len(REQUESTED_RUNS))
+print('Unique target points:', len(set((T, rho) for T, rho, seed in REQUESTED_RUNS)))
+print('Seeds:', sorted(set(seed for T, rho, seed in REQUESTED_RUNS)))
