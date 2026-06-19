@@ -1,4 +1,0 @@
-openmm
-numpy
-matplotlib
-jupyter
