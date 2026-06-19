@@ -19,5 +19,8 @@ figures/*
 benchmark_data/*
 benchmark_data/
 local_data/*
+compression_movie_data/
+compression_movie_data_smoke/
+rendered_frames/
 *.zip
 lj_vdw_results.zip
