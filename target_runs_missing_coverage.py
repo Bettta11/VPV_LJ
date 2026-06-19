@@ -214,8 +214,33 @@ PROD_STEPS = 20_000
 SAMPLE_INTERVAL = 500
 N_BLOCKS = 10
 
+# Kaggle обычно даёт две GPU с индексами 0 и 1. Если доступна только одна, notebook сам уйдёт в последовательный режим.
+USE_MULTIGPU_WORKERS = True
+REQUESTED_DEVICE_INDICES = ['0', '1']
 DEVICE_INDEX = '0'
 PRECISION = 'mixed'
+
+def detect_cuda_device_indices():
+    try:
+        result = subprocess.run(
+            ['nvidia-smi', '--query-gpu=index', '--format=csv,noheader'],
+            text=True, capture_output=True, check=False,
+        )
+        indices = [line.strip() for line in result.stdout.splitlines() if line.strip() != '']
+        return indices
+    except Exception:
+        return []
+
+AVAILABLE_DEVICE_INDICES = detect_cuda_device_indices()
+DEVICE_INDICES = [str(i) for i in REQUESTED_DEVICE_INDICES if str(i) in AVAILABLE_DEVICE_INDICES]
+if not DEVICE_INDICES:
+    DEVICE_INDICES = [str(DEVICE_INDEX)]
+USE_MULTIGPU_WORKERS = bool(USE_MULTIGPU_WORKERS and len(DEVICE_INDICES) > 1)
+DEVICE_INDEX = DEVICE_INDICES[0]
+
+print('Available CUDA device indices:', AVAILABLE_DEVICE_INDICES)
+print('Selected CUDA device indices:', DEVICE_INDICES)
+print('Use multi-GPU workers:', USE_MULTIGPU_WORKERS)
 
 TARGET_POINTS = [(float(T), float(rho)) for T, rho in TARGET_POINTS]
 TARGET_RUNS = [(float(T), float(rho), int(seed)) for T, rho, seed in TARGET_RUNS]
