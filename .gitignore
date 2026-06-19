@@ -18,5 +18,6 @@ data/*
 figures/*
 benchmark_data/*
 benchmark_data/
+local_data/*
 *.zip
 lj_vdw_results.zip
