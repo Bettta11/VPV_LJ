@@ -1,1026 +1,265 @@
 \documentclass[aspectratio=169,11pt]{beamer}
 
-% Компилировать с LuaLaTeX.
 \usepackage{fontspec}
 \usepackage{polyglossia}
-
 \setdefaultlanguage{russian}
 \setotherlanguage{english}
-
 \setsansfont{DejaVu Sans}
 \setmainfont{DejaVu Serif}
 \setmonofont{DejaVu Sans Mono}
 
 \usepackage{amsmath,amssymb}
-\usepackage{booktabs}
 \usepackage{graphicx}
-\usepackage{array}
 \usepackage{xcolor}
 
 \usetheme{Madrid}
 \usecolortheme{default}
 
-% -----------------------------------------------------------------------------
-% Цветовая схема
-% -----------------------------------------------------------------------------
-
 \definecolor{darkblue}{RGB}{28,62,115}
 \definecolor{midblue}{RGB}{55,91,150}
 \definecolor{lightblue}{RGB}{232,239,249}
-\definecolor{softgray}{RGB}{246,247,249}
 \definecolor{darkgray}{RGB}{45,48,54}
 
-\setbeamercolor{normal text}{
-    fg=darkgray,
-    bg=white
-}
-
-\setbeamercolor{structure}{
-    fg=darkblue
-}
-
-% Все заголовки на синем фоне — белые.
-\setbeamercolor{frametitle}{
-    fg=white,
-    bg=darkblue
-}
-
-\setbeamercolor{frametitle right}{
-    fg=white,
-    bg=darkblue
-}
-
-\setbeamercolor{title}{
-    fg=white,
-    bg=darkblue
-}
-
-\setbeamercolor{titlelike}{
-    fg=white,
-    bg=darkblue
-}
-
-\setbeamercolor{subtitle}{
-    fg=white,
-    bg=darkblue
-}
-
-\setbeamercolor{palette primary}{
-    fg=white,
-    bg=darkblue
-}
-
-\setbeamercolor{palette secondary}{
-    fg=white,
-    bg=midblue
-}
-
-\setbeamercolor{palette tertiary}{
-    fg=white,
-    bg=darkblue
-}
-
-\setbeamercolor{palette quaternary}{
-    fg=white,
-    bg=darkblue
-}
-
-\setbeamercolor{headline}{
-    fg=white,
-    bg=darkblue
-}
-
-\setbeamercolor{section in head/foot}{
-    fg=white,
-    bg=darkblue
-}
-
-\setbeamercolor{subsection in head/foot}{
-    fg=white,
-    bg=midblue
-}
-
-\setbeamercolor{author in head/foot}{
-    fg=white,
-    bg=midblue
-}
-
-\setbeamercolor{title in head/foot}{
-    fg=white,
-    bg=darkblue
-}
-
-\setbeamercolor{date in head/foot}{
-    fg=white,
-    bg=midblue
-}
-
-\setbeamercolor{block title}{
-    fg=white,
-    bg=darkblue
-}
-
-\setbeamercolor{block title alerted}{
-    fg=white,
-    bg=darkblue
-}
-
-\setbeamercolor{block title example}{
-    fg=white,
-    bg=darkblue
-}
-
-\setbeamercolor{block body}{
-    fg=darkgray,
-    bg=lightblue
-}
-
-\setbeamercolor{alerted text}{
-    fg=darkblue
-}
-
+\setbeamercolor{normal text}{fg=darkgray,bg=white}
+\setbeamercolor{structure}{fg=darkblue}
+\setbeamercolor{frametitle}{fg=white,bg=darkblue}
+\setbeamercolor{frametitle right}{fg=white,bg=darkblue}
+\setbeamercolor{title}{fg=white,bg=darkblue}
+\setbeamercolor{titlelike}{fg=white,bg=darkblue}
+\setbeamercolor{subtitle}{fg=white,bg=darkblue}
+\setbeamercolor{palette primary}{fg=white,bg=darkblue}
+\setbeamercolor{palette secondary}{fg=white,bg=midblue}
+\setbeamercolor{palette tertiary}{fg=white,bg=darkblue}
+\setbeamercolor{palette quaternary}{fg=white,bg=darkblue}
+\setbeamercolor{headline}{fg=white,bg=darkblue}
+\setbeamercolor{section in head/foot}{fg=white,bg=darkblue}
+\setbeamercolor{subsection in head/foot}{fg=white,bg=midblue}
+\setbeamercolor{author in head/foot}{fg=white,bg=midblue}
+\setbeamercolor{title in head/foot}{fg=white,bg=darkblue}
+\setbeamercolor{date in head/foot}{fg=white,bg=midblue}
+\setbeamercolor{block title}{fg=white,bg=darkblue}
+\setbeamercolor{block title alerted}{fg=white,bg=darkblue}
+\setbeamercolor{block title example}{fg=white,bg=darkblue}
+\setbeamercolor{block body}{fg=darkgray,bg=lightblue}
+\setbeamercolor{alerted text}{fg=darkblue}
 \setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}{}
 \setbeamertemplate{caption}[numbered]
+\setbeamertemplate{itemize item}{\color{darkblue}$\blacktriangleright$}
+\graphicspath{{../графики/}}
 
-\setbeamertemplate{itemize item}{
-    \color{darkblue}$\blacktriangleright$
-}
+\newcommand{\fitA}{5.382}
+\newcommand{\fitB}{1.585}
+\newcommand{\fitRMSE}{1.30\cdot10^{-3}}
+\newcommand{\fitMAE}{7.75\cdot10^{-4}}
+\newcommand{\fitN}{93}
+\newcommand{\vdwTc}{1.006}
+\newcommand{\vdwRhoc}{0.210}
+\newcommand{\vdwPc}{0.0793}
 
-\setbeamertemplate{itemize subitem}{
-    \color{midblue}$\bullet$
-}
-
-\graphicspath{{figures/}}
-
-% -----------------------------------------------------------------------------
-% Плейсхолдеры для рисунков
-% -----------------------------------------------------------------------------
-
-\newcommand{\placeholder}[2]{%
-    \begin{center}
-        \fbox{%
-            \parbox[c][#2][c]{0.92\linewidth}{%
-                \centering
-                \textit{#1}%
-            }%
-        }
-    \end{center}
-}
-
-% -----------------------------------------------------------------------------
-% Предварительные численные результаты
-%
-% TODO: заменить после окончательной обработки данных.
-% -----------------------------------------------------------------------------
-
-\newcommand{\fitA}{5.520}
-\newcommand{\fitB}{1.632}
-\newcommand{\fitRMSE}{1.52\cdot10^{-3}}
-\newcommand{\fitMAE}{9.76\cdot10^{-4}}
-\newcommand{\fitN}{46}
-
-\newcommand{\vdwTc}{1.00}
-\newcommand{\vdwRhoc}{0.204}
-\newcommand{\vdwPc}{0.0768}
-
-% -----------------------------------------------------------------------------
-% Титульные данные
-% -----------------------------------------------------------------------------
-
-\title[MD LJ-флюида и модель Ван-дер-Ваальса]{%
-    Численная проверка области применимости\\
-    уравнения Ван-дер-Ваальса для Lennard--Jones-флюида
-}
-
-\author{Стас Смекалин}
-
-\institute{
-    Московский физико-технический институт
-}
-
+\title[MD LJ-флюида и Ван-дер-Ваальс]{флюид Ленарда-Джонса:\\MD-изотермы и эффективная аппроксимация Ван-дер-Ваальса}
+\author{Станислав Смекалин}
+\institute{МФТИ, Б02-507}
 \date{\today}
 
 \begin{document}
 
-% =============================================================================
 \begin{frame}
     \titlepage
-
-    % TODO:
-    % Добавить группу, кафедру и научного руководителя.
 \end{frame}
 
-% =============================================================================
-\begin{frame}{Постановка задачи}
-
-    \begin{block}{Основной вопрос}
-        Насколько хорошо двухпараметрическое уравнение
-        Ван-дер-Ваальса описывает изотермы флюида,
-        заданного микроскопическим потенциалом Леннарда--Джонса?
-    \end{block}
-
-    \vspace{0.4em}
-
+\begin{frame}{Задача}
     \begin{columns}[T]
-
         \begin{column}{0.48\textwidth}
-
-            \textbf{Микроскопическая модель}
-
+            \textbf{Модель MD}
             \[
-            u(r)=4\varepsilon
-            \left[
-                \left(\frac{\sigma}{r}\right)^{12}
-                -
-                \left(\frac{\sigma}{r}\right)^6
-            \right].
+            u(r)=4\varepsilon\left[\left(\frac{\sigma}{r}\right)^{12}
+            -\left(\frac{\sigma}{r}\right)^6\right]
             \]
-
+            \begin{itemize}
+                \item $\sigma=\varepsilon=m=k_B=1$
+                \item $NVT$, периодическая ячейка
+                \item давление из вириала
+            \end{itemize}
         \end{column}
-
         \begin{column}{0.48\textwidth}
-
             \textbf{Эффективная модель}
-
             \[
-            P_{\mathrm{VdW}}
-            =
-            \frac{\rho T}{1-b\rho}
-            -
-            a\rho^2.
+            P_{\mathrm{VdW}}=\frac{\rho T}{1-b\rho}-a\rho^2
             \]
-
+            \begin{itemize}
+                \item fit только в газовой области
+                \item $a$ и $b$ не универсальны
+                \item проверяется экстраполяция
+            \end{itemize}
         \end{column}
-
     \end{columns}
-
-    \vspace{0.5em}
-
-    Параметры \(a\) и \(b\) рассматриваются как эффективные параметры,
-    определённые в выбранной области температур и плотностей.
-
 \end{frame}
 
-% =============================================================================
-\begin{frame}{Цели работы}
-
-    \begin{enumerate}
-
-        \item Получить численные изотермы \(P(\rho)\)
-        методом молекулярной динамики.
-
-        \item Подобрать параметры \(a\) и \(b\)
-        по однофазной газовой области.
-
-        \item Проверить качество экстраполяции
-        вне области подгонки.
-
-        \item Сравнить численную спинодаль
-        с предсказанием модели Ван-дер-Ваальса.
-
-        \item Интерпретировать поведение давления
-        через удельную потенциальную энергию.
-
-    \end{enumerate}
-
-    \vspace{0.5em}
-
-    \begin{block}{Критерий}
-        Исследуется не только точность локальной подгонки,
-        но и физические границы применимости модели.
-    \end{block}
-
+\begin{frame}{Расчёт}
+    \begin{itemize}
+        \item OpenMM, $N=2048$, $r_c=2.5$, $\Delta t=0.002$, Langevin $\gamma=1.0$.
+        \item До пяти независимых seed для каждой точки.
+        \item $0.7\leq T\leq1.5$, $0.0025\leq\rho\leq0.85$.
+        \item Релаксация $2\cdot10^4$ шагов; измерение $2\cdot10^4$ или $5\cdot10^4$ шагов.
+        \item Погрешность давления: разброс независимых средних по seed.
+    \end{itemize}
 \end{frame}
 
-% =============================================================================
-\begin{frame}{Численная модель}
-
+\begin{frame}{Изотермы}
     \begin{columns}[T]
+        \begin{column}{0.67\textwidth}
+            \includegraphics[width=\linewidth]{давление_от_плотности.png}
+        \end{column}
+        \begin{column}{0.30\textwidth}
+            \begin{itemize}
+                \item При малых $\rho$: $P\to\rho T$.
+                \item Немонотонность видна до $T=1.0$.
+                \item Оценка: $T_c\approx1.0$.
+                \item При больших $\rho$ давление быстро растёт.
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
 
+\begin{frame}{Плотности до $\rho=0.3$}
+    \begin{columns}[T]
+        \begin{column}{0.68\textwidth}
+            \includegraphics[width=\linewidth]{давление_малые_плотности.png}
+        \end{column}
+        \begin{column}{0.29\textwidth}
+            \begin{itemize}
+                \item Газовая ветвь хорошо разрешена.
+                \item Fit выполняется при $T\geq1.1$, $\rho\leq0.20$.
+                \item Ниже $T_c$ начинается заметная систематика отклонений.
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Подгонка Ван-дер-Ваальса}
+    \begin{columns}[T]
         \begin{column}{0.50\textwidth}
-
-            \textbf{Система}
-
-            \begin{itemize}
-                \item трёхмерная кубическая ячейка;
-                \item периодические граничные условия;
-                \item \(NVT\)-ансамбль;
-                \item термостат Ланжевена;
-                \item радиус обрезания \(r_c\approx2.5\sigma\).
-            \end{itemize}
-
+            \begin{block}{Газовая область}
+                \[
+                T\geq1.1,\qquad \rho\leq0.20
+                \]
+                \[
+                a=\fitA,\qquad b=\fitB
+                \]
+                \[
+                \mathrm{RMSE}=\fitRMSE,\quad
+                \mathrm{MAE}=\fitMAE
+                \]
+                \[
+                N_{\mathrm{fit}}=\fitN
+                \]
+            \end{block}
         \end{column}
-
-        \begin{column}{0.46\textwidth}
-
-            \textbf{Приведённые единицы}
-
-            \[
-            \sigma=\varepsilon=m=k_{\mathrm B}=1,
-            \qquad
-            \rho=\frac{N}{V}.
-            \]
-
-            \textbf{Диапазон параметров}
-
-            \[
-            0.7\leq T\leq1.5.
-            \]
-
+        \begin{column}{0.47\textwidth}
+            \begin{block}{Критические параметры модели}
+                \[
+                T_c^{\mathrm{VdW}}=\vdwTc
+                \]
+                \[
+                \rho_c^{\mathrm{VdW}}=\vdwRhoc,\qquad
+                P_c^{\mathrm{VdW}}=\vdwPc
+                \]
+            \end{block}
+            \vspace{0.5em}
+            Температурный масштаб совпадает с MD-оценкой $T_c\approx1.0$.
         \end{column}
-
     \end{columns}
-
-    \vspace{0.4em}
-
-    Для каждой точки \((T,\rho)\) выполнено
-    несколько независимых прогонов.
-
-    % TODO:
-    % Добавить:
-    % N;
-    % dt;
-    % коэффициент трения;
-    % число seed;
-    % число шагов релаксации;
-    % число шагов измерения;
-    % диапазон плотностей.
-
 \end{frame}
 
-% =============================================================================
-\begin{frame}{Вычисление давления}
-
-    В периодической ячейке давление определяется
-    как изотропная часть среднего тензора внутренних напряжений:
-
-    \[
-    P
-    =
-    \rho T
-    +
-    \frac{1}{3V}
-    \left\langle
-        \sum_{i<j}
-        \mathbf r_{ij}\cdot\mathbf F_{ij}
-    \right\rangle.
-    \]
-
-    Для потенциала Леннарда--Джонса
-    в приведённых единицах:
-
-    \[
-    P
-    =
-    \rho T
-    +
-    \frac{8}{V}
-    \left\langle
-        \sum_{i<j}
-        \left(
-            \frac{2}{r_{ij}^{12}}
-            -
-            \frac{1}{r_{ij}^{6}}
-        \right)
-    \right\rangle.
-    \]
-
-    \begin{itemize}
-        \item \(\rho T\) --- кинетический,
-        или идеальногазовый, вклад;
-
-        \item вириальный член учитывает
-        притяжение и отталкивание.
-    \end{itemize}
-
-\end{frame}
-
-% =============================================================================
-\begin{frame}{Численные изотермы}
-
-    \placeholder{
-        Вставить основной график:
-        семейство изотерм \(P(\rho)\)
-        для всех температур с погрешностями.
-    }{0.54\textheight}
-
-    % TODO:
-    % Заменить плейсхолдер на:
-    %
-    % \includegraphics[
-    %     width=\textwidth
-    % ]{eos_isotherms.pdf}
-
-    \vspace{-0.3em}
-
-    \begin{itemize}
-
-        \item при малой плотности выполняется
-        идеальногазовый предел;
-
-        \item на докритических изотермах
-        возникают немонотонные участки;
-
-        \item в части переходной области
-        давление становится отрицательным;
-
-        \item при больших плотностях доминирует
-        короткодействующее отталкивание.
-
-    \end{itemize}
-
-\end{frame}
-
-% =============================================================================
-\begin{frame}{Механическая неустойчивость}
-
-    Для устойчивой однородной фазы должно выполняться
-
-    \[
-    \left(
-        \frac{\partial P}{\partial\rho}
-    \right)_T
-    >0.
-    \]
-
-    Область с отрицательной производной соответствует
-    потере механической устойчивости однородного состояния.
-
-    \vspace{0.5em}
-
-    В конечной \(NVT\)-симуляции форма немонотонной ветви зависит от:
-
-    \begin{itemize}
-        \item метастабильности и времени релаксации;
-        \item кластеризации и фазового разделения;
-        \item размера и геометрии периодической ячейки.
-    \end{itemize}
-
-    \begin{block}{Следствие}
-        Наблюдаемая немонотонная ветвь используется
-        для оценки спинодали, но не отождествляется
-        с точной кривой фазового равновесия.
-    \end{block}
-
-\end{frame}
-
-% =============================================================================
-\begin{frame}{Удельная потенциальная энергия}
-
-    \placeholder{
-        Вставить график \(U/N\) как функции плотности
-        для всех исследованных температур.
-    }{0.51\textheight}
-
-    % TODO:
-    % Заменить плейсхолдер на:
-    %
-    % \includegraphics[
-    %     width=\textwidth
-    % ]{potential_energy_vs_density.pdf}
-
-    Для однородного изотропного флюида
-
-    \[
-    \frac{U}{N}
-    =
-    2\pi\rho
-    \int_0^{r_c}
-        u(r)
-        g(r;\rho,T)
-        r^2\,dr.
-    \]
-
-\end{frame}
-
-% =============================================================================
-\begin{frame}{Интерпретация зависимости \(U/N(\rho)\)}
-
-    Если при фиксированной температуре
-    функция парных корреляций слабо зависит от плотности, то
-
-    \[
-    \frac{U}{N}\approx C(T)\rho.
-    \]
-
+\begin{frame}{Остатки}
     \begin{columns}[T]
-
-        \begin{column}{0.48\textwidth}
-
-            \textbf{Выше критической области}
-
-            \begin{itemize}
-                \item зависимость близка к линейной;
-                \item система остаётся макроскопически однородной;
-                \item структура меняется плавно.
-            \end{itemize}
-
+        \begin{column}{0.68\textwidth}
+            \includegraphics[width=\linewidth]{остатки_vdw_малые_плотности.png}
         \end{column}
-
-        \begin{column}{0.48\textwidth}
-
-            \textbf{Ниже критической области}
-
+        \begin{column}{0.29\textwidth}
             \begin{itemize}
-                \item появляется выраженная нелинейность;
-                \item формируются плотные связанные области;
-                \item поведение согласуется
-                с немонотонностью давления.
+                \item $\Delta P=P_{\mathrm{MD}}-P_{\mathrm{VdW}}$.
+                \item Остатки имеют систематическую структуру.
+                \item Ниже $T_c$ модель завышает давление.
+                \item При $\rho>0.3$ количественная точность быстро теряется.
             \end{itemize}
-
         \end{column}
-
     \end{columns}
-
-    % TODO:
-    % При необходимости добавить линейные аппроксимации
-    % высокотемпературных кривых и значения R^2.
-
 \end{frame}
 
-% =============================================================================
-\begin{frame}{Подгонка уравнения Ван-дер-Ваальса}
-
+\begin{frame}{Спинодаль и бинодаль}
     \begin{columns}[T]
-
-        \begin{column}{0.52\textwidth}
-
-            Использовалась модель
-
-            \[
-            P_{\mathrm{VdW}}
-            =
-            \frac{\rho T}{1-b\rho}
-            -
-            a\rho^2.
-            \]
-
-            Подгонка проводилась по однофазной газовой области:
-
-            \[
-            T\geq1.1,
-            \qquad
-            \rho\leq0.20.
-            \]
-
-            % TODO:
-            % Проверить окончательные границы области fit.
-
+        \begin{column}{0.68\textwidth}
+            \includegraphics[width=\linewidth]{спинодаль_бинодаль_vdw.png}
         \end{column}
-
-        \begin{column}{0.43\textwidth}
-
-            \small
-
-            \begin{tabular}{lc}
-                \toprule
-                Величина & Значение \\
-                \midrule
-                \(a\) & \(\fitA\) \\
-                \(b\) & \(\fitB\) \\
-                RMSE & \(\fitRMSE\) \\
-                MAE & \(\fitMAE\) \\
-                Число точек & \(\fitN\) \\
-                \bottomrule
-            \end{tabular}
-
+        \begin{column}{0.29\textwidth}
+            \begin{itemize}
+                \item Точки MD: границы немонотонных участков.
+                \item Бинодаль MD не восстанавливалась.
+                \item Газовая ветвь VdW согласуется хорошо.
+                \item Жидкостная ветвь описана хуже.
+            \end{itemize}
         \end{column}
-
     \end{columns}
-
-    \vspace{0.6em}
-
-    \begin{block}{Важно}
-        Полученные \(a\) и \(b\) являются эффективными параметрами
-        выбранной области подгонки, а не универсальными параметрами
-        Lennard--Jones-флюида.
-    \end{block}
-
 \end{frame}
 
-% =============================================================================
-\begin{frame}{Качество локальной аппроксимации}
-
-    \placeholder{
-        Вставить сравнение MD-точек
-        и модели Ван-дер-Ваальса
-        в области подгонки и вблизи неё.
-    }{0.56\textheight}
-
-    % TODO:
-    % Заменить плейсхолдер на:
-    %
-    % \includegraphics[
-    %     width=\textwidth
-    % ]{vdw_fit_comparison.pdf}
-
-    \begin{block}{Результат}
-        В выбранной газовой области двухпараметрическая модель
-        воспроизводит давление с малой ошибкой.
-    \end{block}
-
-\end{frame}
-
-% =============================================================================
-\begin{frame}{Экстраполяция вне области подгонки}
-
-    \placeholder{
-        Вставить прямое сравнение изотерм
-        или график остатков
-        \(P_{\mathrm{MD}}-P_{\mathrm{VdW}}\).
-    }{0.52\textheight}
-
-    % TODO:
-    % Выбрать один основной способ представления отклонений:
-    %
-    % 1. прямое сравнение изотерм;
-    % 2. график остатков;
-    % 3. два небольших графика на одном слайде.
-
-    \begin{itemize}
-
-        \item в переходной области модель неверно
-        воспроизводит форму изотерм;
-
-        \item положение экстремумов и плотностный масштаб
-        систематически смещены;
-
-        \item плотная ветвь не описывается
-        постоянными \(a\) и \(b\).
-
-    \end{itemize}
-
-\end{frame}
-
-% =============================================================================
-\begin{frame}{Численная оценка спинодали}
-
-    Спинодаль определяется условием
-
-    \[
-    \left(
-        \frac{\partial P}{\partial\rho}
-    \right)_T
-    =0.
-    \]
-
-    В численных данных применялся дискретный критерий:
-
-    \begin{itemize}
-
-        \item для каждой температуры выделялся
-        связный немонотонный участок;
-
-        \item его граничные измеренные точки принимались
-        за приближённые спинодальные точки;
-
-        \item неоднозначные случаи исключались.
-
-    \end{itemize}
-
-    \begin{block}{Терминология}
-        Полученная кривая является приближённой спинодалью
-        конечносистемных MD-изотерм, а не бинодалью.
-    \end{block}
-
-\end{frame}
-
-% =============================================================================
-\begin{frame}{Спинодаль модели Ван-дер-Ваальса}
-
-    Для уравнения Ван-дер-Ваальса
-
-    \[
-    \frac{\partial P}{\partial\rho}
-    =
-    \frac{T}{(1-b\rho)^2}
-    -
-    2a\rho.
-    \]
-
-    Поэтому
-
-    \[
-    T_{\mathrm{sp}}^{\mathrm{VdW}}(\rho)
-    =
-    2a\rho(1-b\rho)^2.
-    \]
-
-    Критические параметры модели:
-
-    \[
-    \rho_c^{\mathrm{VdW}}
-    =
-    \frac{1}{3b}
-    \approx
-    \vdwRhoc,
-    \]
-
-    \[
-    T_c^{\mathrm{VdW}}
-    =
-    \frac{8a}{27b}
-    \approx
-    \vdwTc,
-    \qquad
-    P_c^{\mathrm{VdW}}
-    =
-    \frac{a}{27b^2}
-    \approx
-    \vdwPc.
-    \]
-
-    % TODO:
-    % Обновить значения после окончательной подгонки.
-
-\end{frame}
-
-% =============================================================================
-\begin{frame}{Сравнение спинодалей}
-
-    \placeholder{
-        Вставить диаграмму \(T(\rho)\):
-        численная MD-спинодаль и спинодаль
-        модели Ван-дер-Ваальса.
-    }{0.56\textheight}
-
-    % TODO:
-    % Заменить плейсхолдер на:
-    %
-    % \includegraphics[
-    %     width=\textwidth
-    % ]{spinodal_comparison.pdf}
-
-    \begin{block}{Главный результат}
-        Модель хорошо воспроизводит температурный масштаб
-        исчезновения немонотонности, но плохо описывает
-        форму и плотностный масштаб спинодали.
-    \end{block}
-
-\end{frame}
-
-% =============================================================================
-\begin{frame}{Почему возникает расхождение}
-
+\begin{frame}{Потенциальная энергия}
     \begin{columns}[T]
-
-        \begin{column}{0.48\textwidth}
-
-            \textbf{Что учитывает модель}
-
-            \begin{itemize}
-                \item среднее притяжение;
-                \item исключённый объём;
-                \item существование критической точки;
-                \item качественную немонотонность изотерм.
-            \end{itemize}
-
+        \begin{column}{0.68\textwidth}
+            \includegraphics[width=\linewidth]{энергия_на_частицу.png}
         \end{column}
-
-        \begin{column}{0.48\textwidth}
-
-            \textbf{Что в ней отсутствует}
-
+        \begin{column}{0.29\textwidth}
             \begin{itemize}
-                \item зависимость парных корреляций от плотности;
-                \item точная форма LJ-потенциала;
-                \item структура плотной жидкости;
-                \item конечносистемная кластеризация.
+                \item При $T>1.1$ зависимость почти линейна.
+                \item При меньших $T$ появляется прогиб.
+                \item Это согласуется со структурной перестройкой.
             \end{itemize}
-
         \end{column}
-
     \end{columns}
-
-    \vspace{0.6em}
-
-    \begin{block}{Следствие}
-        Хороший локальный fit не означает хорошего
-        глобального уравнения состояния.
-    \end{block}
-
 \end{frame}
 
-% =============================================================================
-\begin{frame}{Ограничения}
-
+\begin{frame}{Неравновесное сжатие}
+    \begin{block}{Назначение ролика}
+        Качественная визуализация непрерывного изотермического сжатия LJ-флюида,
+        а не равновесная изотерма.
+    \end{block}
     \begin{itemize}
-
-        \item Спинодаль восстановлена
-        по дискретным конечносистемным данным.
-
-        \item Метастабильные точки могут зависеть
-        от времени релаксации и начальных условий.
-
-        \item Уравнение Ван-дер-Ваальса подгонялось только
-        в ограниченной однофазной области.
-
-        \item Бинодаль и строгое фазовое равновесие
-        в текущей версии не восстанавливались.
-
+        \item $T=0.8$, $N=512$, $0.05\leq\rho\leq0.85$.
+        \item Ячейка периодическая; термостат отводит тепло при сжатии.
+        \item Траектория помогает увидеть уплотнение и структурную перестройку.
+        \item Для количественных выводов используются только равновесные MD-точки.
     \end{itemize}
-
-    \vspace{0.6em}
-
-    \begin{block}{Корректная формулировка результата}
-        Исследована область применимости эффективной модели
-        на данных молекулярной динамики конечной системы.
-    \end{block}
-
 \end{frame}
 
-% =============================================================================
-\begin{frame}{Выводы}
-
+\begin{frame}{Итоги}
     \begin{enumerate}
-
-        \item Получены изотермы LJ-флюида
-        от разреженного газа до плотного состояния.
-
-        \item В газовой области уравнение Ван-дер-Ваальса
-        хорошо аппроксимирует давление.
-
-        \item При экстраполяции в переходную и плотную области
-        возникают систематические отклонения.
-
-        \item Температурный масштаб спинодали воспроизводится лучше,
-        чем её форма и плотностный масштаб.
-
-        \item Зависимость \(U/N(\rho)\) подтверждает
-        структурную перестройку системы.
-
+        \item MD воспроизводит переход от газа к области механической неустойчивости и плотному флюиду.
+        \item Локальный fit Ван-дер-Ваальса хорошо описывает газовую область.
+        \item Модель верно передаёт температурный масштаб и газовую ветвь спинодали.
+        \item Жидкостная ветвь и область $\rho>0.3$ количественно описываются плохо.
+        \item Поведение $U/N$ независимо подтверждает смену структурного режима.
     \end{enumerate}
-
-    \begin{block}{Итог}
-        Уравнение Ван-дер-Ваальса является хорошей локальной
-        эффективной моделью газовой ветви, но не универсальным
-        количественным описанием Lennard--Jones-флюида.
-    \end{block}
-
 \end{frame}
-
-% =============================================================================
-\begin{frame}{Дополнительная визуализация}
-
-    \placeholder{
-        Вставить кадр или ссылку
-        на ролик изотермического сжатия
-        при \(T=0.8\).
-    }{0.43\textheight}
-
-    Ролик должен качественно показывать:
-
-    \begin{itemize}
-        \item разреженный газ;
-        \item возникновение кластеров;
-        \item прохождение области отрицательного давления;
-        \item переход к плотному жидкоподобному состоянию.
-    \end{itemize}
-
-    \small
-
-    Ролик является иллюстрацией неравновесного
-    изотермического сжатия, а не последовательностью
-    строго равновесных состояний.
-
-    % TODO:
-    % Удалить слайд, если ролик не будет готов.
-
-\end{frame}
-
-% =============================================================================
-% Резервные слайды
-% =============================================================================
 
 \appendix
 
-\begin{frame}{Резерв: параметры расчёта}
-
-    \centering
-
-    \begin{tabular}{lc}
-        \toprule
-        Параметр & Значение \\
-        \midrule
-        Число частиц \(N\) & TODO \\
-        Температуры & \(0.7\ldots1.5\) \\
-        Диапазон плотностей & TODO \\
-        Число seed & TODO \\
-        Радиус обрезания \(r_c\) & \(2.5\sigma\) \\
-        Шаг интегрирования \(\Delta t\) & TODO \\
-        Шаги релаксации & TODO \\
-        Шаги измерения & TODO \\
-        Интервал измерений & TODO \\
-        \bottomrule
-    \end{tabular}
-
+\begin{frame}{Резерв: давление}
+    \[
+    P=\rho T+\frac{1}{3V}\left\langle
+        \sum_{i<j}\mathbf r_{ij}\cdot\mathbf F_{ij}
+    \right\rangle
+    \]
+    В периодической системе это изотропная часть среднего внутреннего напряжения.
 \end{frame}
 
-% =============================================================================
-\begin{frame}{Резерв: вывод вириальной формулы}
-
-    Введём
-
+\begin{frame}{Резерв: спинодаль Ван-дер-Ваальса}
     \[
-    G
-    =
-    \sum_i
-    \mathbf r_i\cdot\mathbf p_i.
+    \frac{\partial P}{\partial\rho}=\frac{T}{(1-b\rho)^2}-2a\rho
     \]
-
-    Тогда
-
     \[
-    \frac{dG}{dt}
-    =
-    2K
-    +
-    \sum_i
-    \mathbf r_i\cdot\mathbf F_i.
+    T_{\mathrm{sp}}^{\mathrm{VdW}}(\rho)=2a\rho(1-b\rho)^2
     \]
-
-    После усреднения в ограниченной стационарной системе
-    и учёта вириала сил стенок \(-3PV\):
-
-    \[
-    P
-    =
-    \frac{2\langle K\rangle}{3V}
-    +
-    \frac{1}{3V}
-    \left\langle
-        \sum_{i<j}
-        \mathbf r_{ij}\cdot\mathbf F_{ij}
-    \right\rangle.
-    \]
-
-\end{frame}
-
-% =============================================================================
-\begin{frame}{Резерв: критическая точка модели}
-
-    Критическая точка задаётся условиями
-
-    \[
-    \left(
-        \frac{\partial P}{\partial\rho}
-    \right)_T
-    =0,
-    \qquad
-    \left(
-        \frac{\partial^2P}{\partial\rho^2}
-    \right)_T
-    =0.
-    \]
-
-    Для уравнения Ван-дер-Ваальса:
-
-    \[
-    \rho_c
-    =
-    \frac{1}{3b},
-    \qquad
-    T_c
-    =
-    \frac{8a}{27b},
-    \qquad
-    P_c
-    =
-    \frac{a}{27b^2}.
-    \]
-
-\end{frame}
-
-% =============================================================================
-\begin{frame}{Резерв: источники}
-
-    \small
-
-    \begin{thebibliography}{9}
-
-        \bibitem{AllenTildesley}
-        M.~P. Allen, D.~J. Tildesley,
-        \textit{Computer Simulation of Liquids}.
-
-        \bibitem{FrenkelSmit}
-        D. Frenkel, B. Smit,
-        \textit{Understanding Molecular Simulation}.
-
-        \bibitem{HansenMcDonald}
-        J.-P. Hansen, I.~R. McDonald,
-        \textit{Theory of Simple Liquids}.
-
-        \bibitem{OpenMM}
-        P. Eastman et al.,
-        OpenMM 7: Rapid development of high performance
-        algorithms for molecular dynamics.
-
-    \end{thebibliography}
-
-    % TODO:
-    % Добавить источник по фазовой диаграмме LJ/LJTS
-    % и источник по спинодали.
-
 \end{frame}
 
 \end{document}
